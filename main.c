@@ -4,6 +4,8 @@
 #include <openssl/pem.h>
 #include <openssl/err.h>
 #include "wsclient.h"
+#include <string.h>
+#include <stdlib.h>
 
 // Path: Makefile
 // CC = gcc
@@ -147,7 +149,7 @@ int decryptMessage(RSA *rsa, unsigned char *ciphertext, int ciphertext_len, unsi
         return -1;
     }
 
-    rsa = PEM_read_RSAPrivateKey(fp, &rsa, NULL, NULL);
+    rsa = PEM_read_RSAPrivateKey(fp, rsa, NULL, NULL);
     if (rsa == NULL) {
         printf("Error reading private key");
         return -1;
