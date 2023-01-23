@@ -2,3 +2,7 @@
 
 *.pem
 *.out
+
+*.code-workspace
+
+todo.md

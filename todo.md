@@ -1,3 +1,9 @@
+# Sources
+[How to build a web client (C-websockets)](https://www.youtube.com/watch?v=bdIiTxtMaKA&list=PL9IEJIKnBJjH_zM5LnovnoaKlXML5qh17)
+
+
+---
+
 # Errors
 
 ```bash
