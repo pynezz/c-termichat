@@ -3,17 +3,28 @@
 #include <openssl/rsa.h>
 #include <openssl/pem.h>
 #include <openssl/err.h>
+#include "wsclient.h"
+
+// Path: Makefile
+// CC = gcc
+// CFLAGS = -Wall -Wextra -Werror -std=c99 -g -lcrypto -lwebsockets 
+// SRC = main.c
+// OBJ = $(SRC:.c=.o)
+// EXEC = app.out
 
 
+// #define MSGLEN int = 1024;
 
 //? Init with gcc main.c -o app.out -lcrypto
 
 // -------------   Dokumentasjon   ------------------------
 
 // https://www.openssl.org/docs/man1.0.2/man3/
+// https://libwebsockets.org/
 
 // --------------------------------------------------------
 
+// For easy testing, just pass the same private and public key to all clients
 int genKeyPair() {
     RSA *rsa = NULL;
     BIGNUM *bne = NULL;                         // For doing multiprecision integer arithmetics
@@ -54,7 +65,14 @@ int genKeyPair() {
         return -1;
     }
 
-    printf("Writing private key to file: %s", bp_private);
+    // char *bp_public_str = NULL;
+    // char *bp_private_str = NULL;
+
+    // bp_public_str = BIO_gets(bp_public, bp_public_str, 0);
+    // bp_private_str = BIO_gets(bp_private, bp_private_str, 0);
+
+
+    printf("Writing private key to file: private.pem");
     ret = PEM_write_bio_RSAPrivateKey(bp_private, rsa, NULL, NULL, 0, NULL, NULL);
 
     if(!ret)
@@ -82,9 +100,15 @@ int genKeyPair() {
     return 0;
 }
 
-int encryptMessage() {
+
+// On message send, pass the message to this function
+// Message is encrypted with the public key of the client, and decrypted with the private key of the client
+// - *cipertext is then the encrypted message, which is sent to the server
+int encryptMessage(unsigned char *message, int message_len, unsigned char *ciphertext) {
+    int padding = RSA_PKCS1_OAEP_PADDING;
+
     RSA *rsa = NULL;
-    FILE *fp = fopen("public.pem", "r");
+    FILE *fp = fopen("public.pem", "r"); // This is the public key of the client, for testing purposes, it needs to be the public key of the server
     if (fp == NULL) {
         printf("Error opening public.pem");
         return -1;
@@ -98,15 +122,45 @@ int encryptMessage() {
 
     // TODO: Implement message encryption 
 
-    // ------------------------------
+    int res = RSA_public_encrypt(strlen(message_len), (unsigned char*)message, (unsigned char*)message, rsa, padding);
+
+    if (!res) {
+        printf("Error reading public key");
+        return -1;
+    }
+
 
     fclose(fp);
 
-    return 0;
+    return res;
 }
 
-int decryptMessage(RSA *rsa, FILE *private_key_file) {
+// On incoming message, pass the message to this function
+// Message is encrypted with the public key of the client, and decrypted with the private key of the client
+// - *message is then the decrypted message, which is displayed in the terminal
+int decryptMessage(RSA *rsa, unsigned char *ciphertext, int ciphertext_len, unsigned char *message) {
+    int padding = RSA_PKCS1_OAEP_PADDING;
 
+    FILE *fp = fopen("private.pem", "r");
+    if (fp == NULL) {
+        printf("Error opening private.pem");
+        return -1;
+    }
+
+    rsa = PEM_read_RSAPrivateKey(fp, &rsa, NULL, NULL);
+    if (rsa == NULL) {
+        printf("Error reading private key");
+        return -1;
+    }
+
+    int res = RSA_private_decrypt(strlen(ciphertext_len), (unsigned char*)ciphertext, (unsigned char*)message, rsa, padding);
+
+    if (!res) {
+        printf("Error reading private key");
+        return -1;
+    }
+
+    return res;
 }
 
 int authenticate(RSA *rsa, FILE *pkf) {
@@ -134,6 +188,15 @@ int authenticate(RSA *rsa, FILE *pkf) {
 
 int main() {
 
+    OpenSSL_add_all_algorithms();
+    ERR_load_BIO_strings();
+    ERR_load_crypto_strings();
+
+    // ---------------- Websockets stuff  --------------- //
+
+
+    // ---------------- Encryption stuff --------------- // 
+
     RSA *rsa = NULL;            // RSA struct for doing RSA operations
     FILE *pkf = NULL;           // Private key file
     char *bp_private[100];      // Private key file path
@@ -160,7 +223,7 @@ int main() {
                 return -1;
             }
             fprintf(stderr, "Opened private key file: %s\n", *pkf);
-            authenticate(&rsa, &pkf);
+            authenticate(rsa, &pkf);
         }
 
     } else {
@@ -168,6 +231,7 @@ int main() {
     }
     return 0;
 }
+
 
 
 
