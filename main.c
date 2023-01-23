@@ -124,7 +124,7 @@ int encryptMessage(unsigned char *message, int message_len, unsigned char *ciphe
 
     // TODO: Implement message encryption 
 
-    int res = RSA_public_encrypt(strlen(message_len), (unsigned char*)message, (unsigned char*)message, rsa, padding);
+    int res = RSA_public_encrypt(message_len, (unsigned char*)message, (unsigned char*)message, rsa, padding);
 
     if (!res) {
         printf("Error reading public key");
@@ -149,13 +149,13 @@ int decryptMessage(RSA *rsa, unsigned char *ciphertext, int ciphertext_len, unsi
         return -1;
     }
 
-    rsa = PEM_read_RSAPrivateKey(fp, rsa, NULL, NULL);
+    rsa = PEM_read_RSAPrivateKey(fp, &rsa, NULL, NULL);
     if (rsa == NULL) {
         printf("Error reading private key");
         return -1;
     }
 
-    int res = RSA_private_decrypt(strlen(ciphertext_len), (unsigned char*)ciphertext, (unsigned char*)message, rsa, padding);
+    int res = RSA_private_decrypt(ciphertext_len, (unsigned char*)ciphertext, (unsigned char*)message, rsa, padding);
 
     if (!res) {
         printf("Error reading private key");
