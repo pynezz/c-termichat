@@ -124,7 +124,7 @@ int encryptMessage(unsigned char *message, int message_len, unsigned char *ciphe
 
     // TODO: Implement message encryption 
 
-    int res = RSA_public_encrypt(message_len, (unsigned char*)message, (unsigned char*)message, rsa, padding);
+    int res = RSA_public_encrypt(message_len, (unsigned char*)message, (unsigned char*)ciphertext, rsa, padding);
 
     if (!res) {
         printf("Error reading public key");
@@ -176,7 +176,7 @@ int authenticate(RSA *rsa, FILE *pkf) {
 
     fprintf(stderr, "Reading private key file\n");
 
-    rsa = PEM_read_RSAPrivateKey(&pkf, &rsa, NULL, NULL);     // TODO: Implement passphrase?
+    rsa = PEM_read_RSAPrivateKey(pkf, &rsa, NULL, NULL);     // TODO: Implement passphrase?
     if (rsa == NULL) {
         printf("Error reading private key");
         return -1;
@@ -201,7 +201,7 @@ int main() {
 
     RSA *rsa = NULL;            // RSA struct for doing RSA operations
     FILE *pkf = NULL;           // Private key file
-    char *bp_private[100];      // Private key file path
+    // char *bp_private[100];      // Private key file path
 
     int userInput = 0;
     printf("1: Generate new key pair\n2: Authenticate with existing key:");
@@ -224,8 +224,8 @@ int main() {
                 fprintf(stderr, "Error opening private key file\n");
                 return -1;
             }
-            fprintf(stderr, "Opened private key file: %s\n", *pkf);
-            authenticate(rsa, &pkf);
+            fprintf(stderr, "Opened private key file: private.pem\n");
+            authenticate(rsa, pkf);
         }
 
     } else {
