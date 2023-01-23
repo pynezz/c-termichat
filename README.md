@@ -20,4 +20,4 @@ and by reinventing the wheel, I will hopefully learn something along the way.
 ---
 
 
-* *I hope*
+\* *I hope*
