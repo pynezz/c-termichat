@@ -13,15 +13,43 @@
 #include <sys/ioctl.h>
 #include <netdb.h>
 
-// #include <libwebsockets.h>
+#include <libwebsockets.h>
 #include "wsclient.h"
 
 #define MAXLINE 4096
 #define SA struct sockaddr
 #define SERVER_PORT 80
 
+int callback_function(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *in, size_t len) {
+    switch (reason) {
+        case LWS_CALLBACK_CLIENT_ESTABLISHED:
+            printf("Connection established with server");
+            break;
+        case LWS_CALLBACK_CLIENT_RECEIVE:
+            printf("Received message from server: %s", in);
+            break;
+        case LWS_CALLBACK_CLIENT_WRITEABLE:
+            printf("Sending message to server");
+            break;
+        default:
+            break;
+    }
+    return 0;
+}
 
-int err_n_no_exit(const char *fmt, ...) { // ... means that the function takes a variable number of arguments
+
+struct lws_protocols protocols[] = {
+    {
+        "chat-proto",
+        callback_function,
+        0,
+        1024, // This is the max size of the message that can be sent
+    },
+    { NULL, NULL, 0, 0 } /* terminator */
+};
+
+
+int err_no_exit(const char *fmt, ...) { // ... means that the function takes a variable number of arguments
     va_list args;
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
@@ -37,7 +65,7 @@ int main(int argc, char **argv) {
     struct sockaddr_in servaddr;
 
     if (argc != 2) {
-        err_n_no_exit("usage: %s <IPaddress>", argv[0]);
+        err_no_exit("usage: %s <IPaddress>", argv[0]);
     }
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -74,9 +102,41 @@ int main(int argc, char **argv) {
     }
 
     return 0;
-
 }
 
+int wsclient_init(int argc, char **argv) {
+    struct lws_context_creation_info info;
+    struct lws_client_connect_info i;
+    struct lws_context *context;
+
+    memset(&info, 0, sizeof info);
+    memset(&i, 0, sizeof i);
+
+    info.port = CONTEXT_PORT_NO_LISTEN;
+    info.protocols = protocols;
+    info.gid = -1;
+    info.uid = -1;
+
+    context = lws_create_context(&info);
+
+    i.context = context;
+    i.address = "localhost";
+    i.port = 80;
+    i.path = "/";
+    i.host = lws_canonical_hostname(context);
+    i.origin = i.host;
+    i.ssl_connection = 0;
+    i.protocol = protocols[0].name;
+    i.ssl_connection = 0;
+
+    lws_client_connect_via_info(&i);
+
+    while (1) {
+        lws_service(context, 50);
+    }
+
+    lws_context_destroy(context);
+}
 
 
 // STRUCTS
